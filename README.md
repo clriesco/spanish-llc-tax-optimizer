@@ -5,7 +5,8 @@ Este proyecto es una herramienta de simulación fiscal diseñada para encontrar 
 ## Características
 
 - **Cálculo Preciso:** Utiliza los tramos de IRPF 2025/2026 (Estatal + Autonómico).
-- **Optimización de Sociedades:** Calcula el impacto del 15% de Impuesto de Sociedades y la base del ahorro en dividendos.
+- **Optimización Interactiva:** Calcula automáticamente el reparto óptimo entre salario y dividendos para minimizar impuestos.
+- **Controles Dinámicos:** Sliders interactivos para ajustar Impuesto de Sociedades, Ingresos Estimados y Costos Operativos.
 - **Visualización Interactiva:** Gráficas interactivas de **Chart.js** que se generan automáticamente.
 - **Sin Instalación:** Funciona directamente en el navegador, no requiere Node.js ni instalación de dependencias.
 - **Salario Mínimo:** La simulación comienza desde el salario mínimo interprofesional (16.576€ en 2026).
@@ -17,19 +18,19 @@ Este proyecto es una herramienta de simulación fiscal diseñada para encontrar 
    - O arrastra el archivo a tu navegador
    - O abre el archivo desde el menú de tu navegador (Archivo → Abrir)
 
-2. **Configuración (opcional):**
-   Si deseas modificar los parámetros de cálculo, edita las constantes al inicio del script en `index.html`:
-   ```javascript
-   const MIN_REVENUE = 20000;      // Ingresos mínimos a analizar
-   const MAX_REVENUE = 120000;      // Ingresos máximos a analizar
-   const REVENUE_STEP = 1000;       // Incremento de ingresos para el análisis
-   const EXPENSES = 0;              // Gastos deducibles (en euros)
-   const SALARY_STEP = 1000;        // Incremento del salario para la simulación
-   ```
+2. **Configura los parámetros con los sliders:**
+   - **Impuesto de Sociedades (%):** Ajusta entre 0% y 30% (por defecto: 15%)
+   - **Ingresos Estimados (€):** Ajusta entre 20.000€ y 200.000€ (por defecto: 100.000€)
+   - **Costos Operativos (€):** Ajusta entre 0€ y 20.000€ (por defecto: 1.000€)
 
 3. **Analiza los resultados:**
+   - El panel **"Reparto Óptimo"** muestra automáticamente:
+     - **Datos de Entrada:** Ingresos Estimados, Costos Operativos, Neto Antes de Impuestos
+     - **Reparto Óptimo:** Salario Administrador (Óptimo) y Dividendos calculados para minimizar impuestos
+     - **Desglose de Impuestos:** IRPF (sobre salario), Impuesto de Sociedades, Impuesto sobre Dividendos, TOTAL IMPUESTOS
+     - **Neto Final en el Bolsillo:** Cantidad final después de todos los impuestos
    - La gráfica principal muestra la comparativa entre Autónomo Normal y Autónomo Societario
-   - La tabla comparativa muestra escenarios específicos (20.000€, 50.000€, 100.000€)
+   - La tabla comparativa muestra escenarios específicos
    - La segunda gráfica muestra el análisis detallado por nivel de salario
    - El **Punto Óptimo (Sweet Spot)** se muestra destacado y representa el salario que minimiza el total de impuestos
 
@@ -41,10 +42,24 @@ El "Punto Dulce" (Sweet Spot) es el salario donde la suma de todos los impuestos
 - **Salarios altos**: Menos beneficios empresariales pero más IRPF (progresivo)
 - **Punto Óptimo**: El equilibrio donde el coste marginal de aumentar el salario (IRPF) iguala o supera el ahorro de reducir beneficios (IS + Dividendos)
 
+### Panel de Reparto Óptimo
+
+El panel principal calcula automáticamente el reparto óptimo basándose en tus entradas:
+- **Ingresos Estimados:** Total de ingresos de la empresa
+- **Costos Operativos:** Gastos deducibles (contabilidad, gastos comerciales, etc.)
+- **Impuesto de Sociedades:** Tasa aplicable (ajustable según tu situación fiscal)
+
+El sistema encuentra el salario que minimiza la suma total de:
+- IRPF sobre el salario del administrador
+- Impuesto de Sociedades sobre los beneficios
+- Impuesto sobre Dividendos (Base del Ahorro)
+
+El resultado muestra el **Neto Final en el Bolsillo**, que es la cantidad total que recibirás después de todos los impuestos (salario neto + dividendos netos).
+
 ## Estructura del Proyecto
 
 ```
-trap-focus-tax-optimizer/
+spanish-llc-tax-optimizer/
 ├── index.html             # Archivo principal con toda la lógica y visualización
 └── README.md              # Este archivo
 ```
@@ -59,6 +74,8 @@ trap-focus-tax-optimizer/
 - Los cálculos están basados en la legislación fiscal española para 2025/2026.
 - Los tramos de IRPF incluyen las tasas estatales y autonómicas combinadas.
 - El salario mínimo considerado es de 16.576€ anuales (2026).
+- El **Impuesto de Sociedades** es ajustable mediante slider (0-30%). El valor por defecto es 15% (tasa general para Pymes).
+- Los **Costos Operativos** incluyen gastos deducibles como contabilidad extra, gastos comerciales, etc.
 - Este es un **simulador** y no constituye asesoramiento fiscal profesional. Consulta con un asesor fiscal para decisiones importantes.
 
 ## Solución de Problemas
