@@ -15,8 +15,8 @@ Requiere [Node.js](https://nodejs.org/) instalado (versión 16 o superior recome
 
 1. Clonar o descargar el proyecto:
    ```bash
-   git clone <url-del-repositorio>
-   cd trap-focus-tax-optimizer
+   git clone https://github.com/clriesco/spanish-llc-tax-optimizer
+   cd spanish-llc-tax-optimizer
    ```
 
 2. Instalar las dependencias del proyecto:
@@ -89,7 +89,7 @@ El "Punto Dulce" (Sweet Spot) es el salario donde la suma de todos los impuestos
 ## Estructura del Proyecto
 
 ```
-trap-focus-tax-optimizer/
+spanish-llc-tax-optimizer/
 ├── src/
 │   └── index.ts          # Código principal con la lógica de cálculo
 ├── index.html             # Archivo generado con la visualización (se crea al ejecutar)
