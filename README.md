@@ -6,77 +6,32 @@ Este proyecto es una herramienta de simulación fiscal diseñada para encontrar 
 
 - **Cálculo Preciso:** Utiliza los tramos de IRPF 2025/2026 (Estatal + Autonómico).
 - **Optimización de Sociedades:** Calcula el impacto del 15% de Impuesto de Sociedades y la base del ahorro en dividendos.
-- **Visualización:** Genera automáticamente un archivo `index.html` con una gráfica interactiva de **Chart.js**.
+- **Visualización Interactiva:** Gráficas interactivas de **Chart.js** que se generan automáticamente.
+- **Sin Instalación:** Funciona directamente en el navegador, no requiere Node.js ni instalación de dependencias.
 - **Salario Mínimo:** La simulación comienza desde el salario mínimo interprofesional (16.576€ en 2026).
-
-## Instalación
-
-Requiere [Node.js](https://nodejs.org/) instalado (versión 16 o superior recomendada).
-
-1. Clonar o descargar el proyecto:
-   ```bash
-   git clone https://github.com/clriesco/spanish-llc-tax-optimizer
-   cd spanish-llc-tax-optimizer
-   ```
-
-2. Instalar las dependencias del proyecto:
-   ```bash
-   npm install
-   ```
-
-   Esto instalará automáticamente:
-   - `typescript` - Compilador de TypeScript
-   - `ts-node` - Ejecutor de TypeScript para Node.js
-   - `@types/node` - Definiciones de tipos para Node.js
-
-## Configuración
-
-Antes de ejecutar el programa, debes configurar las variables según tu situación fiscal. Abre el archivo `src/index.ts` y modifica las siguientes constantes al principio del archivo:
-
-```typescript
-const REVENUE = 50000;        // Ingresos totales de la empresa (en euros)
-const EXPENSES = 1000;         // Gastos deducibles (en euros)
-const SALARY_STEP = 1000;      // Incremento del salario para la simulación (en euros)
-const CORPORATE_TAX_RATE = 0.15; // Tipo de Impuesto de Sociedades (15% para nuevas empresas, 23% para establecidas)
-```
-
-### Variables de Configuración
-
-- **REVENUE**: Ingresos totales anuales de tu Sociedad Limitada (en euros).
-- **EXPENSES**: Gastos deducibles anuales de la empresa (en euros).
-- **SALARY_STEP**: Incremento del salario para cada punto de la simulación. Un valor menor (ej: 500) dará más precisión pero generará más puntos en la gráfica.
-- **CORPORATE_TAX_RATE**: Tipo de Impuesto de Sociedades aplicable:
-  - `0.15` (15%) - Para nuevas empresas durante los primeros años
-  - `0.23` (23%) - Tipo general para empresas establecidas
 
 ## Uso
 
-1. **Configura las variables** en `src/index.ts` según tu situación (ver sección anterior).
+1. **Abre el archivo `index.html`** directamente en tu navegador:
+   - Haz doble clic en el archivo `index.html`
+   - O arrastra el archivo a tu navegador
+   - O abre el archivo desde el menú de tu navegador (Archivo → Abrir)
 
-2. **Ejecuta el programa**:
-   ```bash
-   npm start
-   ```
-   
-   O alternativamente:
-   ```bash
-   ts-node src/index.ts
+2. **Configuración (opcional):**
+   Si deseas modificar los parámetros de cálculo, edita las constantes al inicio del script en `index.html`:
+   ```javascript
+   const MIN_REVENUE = 20000;      // Ingresos mínimos a analizar
+   const MAX_REVENUE = 120000;      // Ingresos máximos a analizar
+   const REVENUE_STEP = 1000;       // Incremento de ingresos para el análisis
+   const EXPENSES = 0;              // Gastos deducibles (en euros)
+   const SALARY_STEP = 1000;        // Incremento del salario para la simulación
    ```
 
-3. **Abre el archivo generado**:
-   El programa generará un archivo `index.html` en la raíz del proyecto. Ábrelo en tu navegador:
-   ```bash
-   open index.html
-   ```
-   
-   O simplemente haz doble clic en el archivo `index.html` desde tu explorador de archivos.
-
-4. **Analiza los resultados**:
-   - La gráfica muestra tres líneas:
-     - **IRPF (Salario)**: Impuesto sobre la renta según el salario
-     - **IS + Impuesto Dividendos**: Suma de Impuesto de Sociedades e impuesto sobre dividendos
-     - **TOTAL IMPUESTOS**: Suma total de todos los impuestos
-   - El **Punto Óptimo (Sweet Spot)** se muestra destacado y representa el salario que minimiza el total de impuestos.
+3. **Analiza los resultados:**
+   - La gráfica principal muestra la comparativa entre Autónomo Normal y Autónomo Societario
+   - La tabla comparativa muestra escenarios específicos (20.000€, 50.000€, 100.000€)
+   - La segunda gráfica muestra el análisis detallado por nivel de salario
+   - El **Punto Óptimo (Sweet Spot)** se muestra destacado y representa el salario que minimiza el total de impuestos
 
 ## Cómo Interpretar los Resultados
 
@@ -89,20 +44,15 @@ El "Punto Dulce" (Sweet Spot) es el salario donde la suma de todos los impuestos
 ## Estructura del Proyecto
 
 ```
-spanish-llc-tax-optimizer/
-├── src/
-│   └── index.ts          # Código principal con la lógica de cálculo
-├── index.html             # Archivo generado con la visualización (se crea al ejecutar)
-├── package.json           # Dependencias y scripts del proyecto
-├── tsconfig.json          # Configuración de TypeScript
+trap-focus-tax-optimizer/
+├── index.html             # Archivo principal con toda la lógica y visualización
 └── README.md              # Este archivo
 ```
 
 ## Requisitos Técnicos
 
-- Node.js 16+ 
-- npm o yarn
-- Navegador web moderno (para visualizar el HTML generado)
+- **Navegador web moderno** (Chrome, Firefox, Safari, Edge)
+- **Conexión a internet** (para cargar Chart.js desde CDN)
 
 ## Notas Importantes
 
@@ -113,14 +63,11 @@ spanish-llc-tax-optimizer/
 
 ## Solución de Problemas
 
-### Error: "Cannot find module 'fs'"
-Ejecuta `npm install` para instalar las dependencias necesarias.
-
 ### La gráfica no se muestra correctamente
 Asegúrate de tener conexión a internet, ya que Chart.js se carga desde un CDN.
 
 ### Los resultados no parecen correctos
-Verifica que las variables `REVENUE` y `EXPENSES` estén correctamente configuradas en `src/index.ts`.
+Verifica que las constantes de configuración en `index.html` estén correctamente ajustadas según tus necesidades.
 
 ## Licencia
 

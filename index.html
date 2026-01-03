@@ -1,0 +1,1240 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tax Sweet Spot Optimizer 2026</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 30px;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2em;
+        }
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 0.9em;
+        }
+        .info-panel {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        .info-item {
+            text-align: center;
+        }
+        .info-label {
+            font-size: 0.85em;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        .info-value {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #333;
+        }
+        .sweet-spot {
+            text-align: center;
+            margin: 30px 0;
+            padding: 25px;
+            background: linear-gradient(135deg, #4bc0c0 0%, #44a08d 100%);
+            border-radius: 8px;
+            color: white;
+        }
+        .sweet-spot h2 {
+            font-size: 1.5em;
+            margin-bottom: 10px;
+        }
+        .sweet-spot .salary {
+            font-size: 2.5em;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        .sweet-spot .details {
+            font-size: 0.9em;
+            opacity: 0.9;
+            margin-top: 15px;
+        }
+        .chart-container {
+            position: relative;
+            height: 500px;
+            margin-top: 30px;
+        }
+        canvas {
+            max-height: 500px;
+        }
+        .comparison-panel {
+            margin: 30px 0;
+            padding: 25px;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            border-radius: 8px;
+            color: white;
+            text-align: center;
+        }
+        .comparison-panel h2 {
+            font-size: 1.5em;
+            margin-bottom: 15px;
+        }
+        .comparison-panel .break-even {
+            font-size: 1.8em;
+            font-weight: bold;
+            margin: 15px 0;
+        }
+        .comparison-panel .savings {
+            font-size: 1.2em;
+            margin-top: 15px;
+            opacity: 0.95;
+        }
+        .comparison-panel .warning {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 15px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 0 auto;
+            background: white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        th, td {
+            padding: 12px;
+            border: 1px solid #ddd;
+        }
+        th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📈 Tax Sweet Spot Optimizer 2026</h1>
+        <p class="subtitle">Optimización fiscal para Sociedades Limitadas en España</p>
+        
+        <div class="info-panel" id="infoPanel"></div>
+        <div id="breakEvenPanel"></div>
+        <div id="sweetSpotPanel"></div>
+        <div class="chart-container">
+            <canvas id="taxChart"></canvas>
+        </div>
+        <div id="comparisonTable"></div>
+        <h2 style="text-align: center; color: #333; margin-top: 50px; margin-bottom: 20px;">
+            📊 Análisis Detallado por Nivel de Salario
+        </h2>
+        <p style="text-align: center; color: #666; margin-bottom: 30px;" id="salaryAnalysisTitle"></p>
+        <div class="chart-container">
+            <canvas id="salaryChart"></canvas>
+        </div>
+    </div>
+
+    <script>
+        // Constants
+        const MIN_REVENUE = 20000;
+        const MAX_REVENUE = 120000;
+        const REVENUE_STEP = 1000;
+        const EXPENSES = 0;
+        const SALARY_STEP = 1000;
+        const CORPORATE_TAX_RATE = 0.15;
+        const MINIMUM_SALARY = 16576;
+
+        const SL_OPERATIONAL_COSTS = {
+            EXTRA_ACCOUNTING: 600,
+            COMMERCIAL_EXPENSES: 350,
+        };
+
+        const SL_TOTAL_OVERHEAD =
+            SL_OPERATIONAL_COSTS.EXTRA_ACCOUNTING +
+            SL_OPERATIONAL_COSTS.COMMERCIAL_EXPENSES;
+
+        const RETA_BRACKETS = [
+            { minMonthly: 0, maxMonthly: 900, monthlyContribution: 230.0 },
+            { minMonthly: 900, maxMonthly: 1125, monthlyContribution: 250.0 },
+            { minMonthly: 1125, maxMonthly: 1350, monthlyContribution: 270.0 },
+            { minMonthly: 1350, maxMonthly: 1575, monthlyContribution: 290.0 },
+            { minMonthly: 1575, maxMonthly: 1800, monthlyContribution: 310.0 },
+            { minMonthly: 1800, maxMonthly: 2025, monthlyContribution: 330.0 },
+            { minMonthly: 2025, maxMonthly: 2250, monthlyContribution: 350.0 },
+            { minMonthly: 2250, maxMonthly: 2475, monthlyContribution: 370.0 },
+            { minMonthly: 2475, maxMonthly: 2700, monthlyContribution: 390.0 },
+            { minMonthly: 2700, maxMonthly: 2925, monthlyContribution: 410.0 },
+            { minMonthly: 2925, maxMonthly: 3150, monthlyContribution: 430.0 },
+            { minMonthly: 3150, maxMonthly: 3375, monthlyContribution: 450.0 },
+            { minMonthly: 3375, maxMonthly: 3600, monthlyContribution: 470.0 },
+            { minMonthly: 3600, maxMonthly: 4200, monthlyContribution: 500.0 },
+            { minMonthly: 4200, maxMonthly: 4800, monthlyContribution: 530.0 },
+            { minMonthly: 4800, maxMonthly: 5400, monthlyContribution: 560.0 },
+            { minMonthly: 5400, maxMonthly: 6000, monthlyContribution: 580.0 },
+            { minMonthly: 6000, maxMonthly: Infinity, monthlyContribution: 605.42 },
+        ];
+
+        const IRPF_BRACKETS = [
+            { limit: 12450, rate: 0.18 },
+            { limit: 13362, rate: 0.205 },
+            { limit: 19004, rate: 0.227 },
+            { limit: 20200, rate: 0.248 },
+            { limit: 35200, rate: 0.278 },
+            { limit: 35425, rate: 0.313 },
+            { limit: 57320, rate: 0.359 },
+            { limit: 60000, rate: 0.39 },
+            { limit: 300000, rate: 0.43 },
+            { limit: Infinity, rate: 0.45 },
+        ];
+
+        const SAVINGS_TAX_BRACKETS = {
+            FIRST_BRACKET_LIMIT: 6000,
+            FIRST_BRACKET_RATE: 0.19,
+            SECOND_BRACKET_LIMIT: 50000,
+            SECOND_BRACKET_RATE: 0.21,
+            THIRD_BRACKET_RATE: 0.23,
+        };
+
+        /**
+         * Formats a number as currency with thousand separators.
+         * @param {number} amount - The amount to format
+         * @returns {string} Formatted currency string
+         */
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat("es-ES", {
+                style: "currency",
+                currency: "EUR",
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0,
+            }).format(amount);
+        }
+
+        /**
+         * Calculates the progressive income tax (IRPF) for a given salary.
+         * @param {number} salary - The salary amount in euros
+         * @returns {number} The total IRPF tax amount in euros
+         */
+        function calculateIRPF(salary) {
+            if (salary <= 0) return 0;
+
+            let tax = 0;
+            let previousLimit = 0;
+
+            for (const bracket of IRPF_BRACKETS) {
+                if (salary > bracket.limit) {
+                    tax += (bracket.limit - previousLimit) * bracket.rate;
+                    previousLimit = bracket.limit;
+                } else {
+                    tax += (salary - previousLimit) * bracket.rate;
+                    break;
+                }
+            }
+            return Math.round(tax * 100) / 100;
+        }
+
+        /**
+         * Calculates the savings tax (Base del Ahorro) for dividend income.
+         * @param {number} amount - The dividend amount in euros
+         * @returns {number} The total savings tax amount in euros
+         */
+        function calculateSavingsTax(amount) {
+            if (amount <= 0) return 0;
+
+            const {
+                FIRST_BRACKET_LIMIT,
+                FIRST_BRACKET_RATE,
+                SECOND_BRACKET_LIMIT,
+                SECOND_BRACKET_RATE,
+                THIRD_BRACKET_RATE,
+            } = SAVINGS_TAX_BRACKETS;
+
+            if (amount <= FIRST_BRACKET_LIMIT) {
+                return amount * FIRST_BRACKET_RATE;
+            }
+
+            if (amount <= SECOND_BRACKET_LIMIT) {
+                return (
+                    FIRST_BRACKET_LIMIT * FIRST_BRACKET_RATE +
+                    (amount - FIRST_BRACKET_LIMIT) * SECOND_BRACKET_RATE
+                );
+            }
+
+            return (
+                FIRST_BRACKET_LIMIT * FIRST_BRACKET_RATE +
+                (SECOND_BRACKET_LIMIT - FIRST_BRACKET_LIMIT) * SECOND_BRACKET_RATE +
+                (amount - SECOND_BRACKET_LIMIT) * THIRD_BRACKET_RATE
+            );
+        }
+
+        /**
+         * Calculates the annual RETA (autónomo) contribution based on monthly net income.
+         * @param {number} annualNetIncome - Annual net income (Revenue - Expenses) in euros
+         * @returns {number} Annual RETA contribution in euros
+         */
+        function calculateRETA(annualNetIncome) {
+            if (annualNetIncome <= 0) {
+                return RETA_BRACKETS[0].monthlyContribution * 12;
+            }
+
+            const monthlyNetIncome = annualNetIncome / 12;
+
+            for (const bracket of RETA_BRACKETS) {
+                if (
+                    monthlyNetIncome >= bracket.minMonthly &&
+                    monthlyNetIncome < bracket.maxMonthly
+                ) {
+                    return Math.round(bracket.monthlyContribution * 12 * 100) / 100;
+                }
+            }
+
+            const highestBracket = RETA_BRACKETS[RETA_BRACKETS.length - 1];
+            return Math.round(highestBracket.monthlyContribution * 12 * 100) / 100;
+        }
+
+        /**
+         * Calculates the tax scenario for an Autónomo (self-employed person).
+         * @param {number} revenue - Total revenue in euros
+         * @param {number} expenses - Total expenses in euros
+         * @returns {{reta: number, irpf: number, totalTax: number, netLiquid: number}}
+         */
+        function calculateAutonomoScenario(revenue, expenses) {
+            const netIncome = revenue - expenses;
+            const reta = calculateRETA(netIncome);
+            const taxableBase = netIncome - reta;
+            const irpf = calculateIRPF(Math.max(0, taxableBase));
+            const totalTax = reta + irpf;
+            const netLiquid = revenue - expenses - totalTax;
+
+            return {
+                reta: Math.round(reta * 100) / 100,
+                irpf: Math.round(irpf * 100) / 100,
+                totalTax: Math.round(totalTax * 100) / 100,
+                netLiquid: Math.round(netLiquid * 100) / 100,
+            };
+        }
+
+        /**
+         * Calculates the optimal salary that minimizes total taxes.
+         * @param {number} revenue - Total revenue in euros
+         * @param {number} expenses - Total expenses in euros
+         * @param {number} salaryStep - Salary increment step for optimization
+         * @param {number} minSalary - Minimum salary to start calculations from
+         * @returns {number} The optimal salary that minimizes total taxes
+         */
+        function calculateOptimalSalaryForMinTaxes(
+            revenue,
+            expenses,
+            salaryStep = 1000,
+            minSalary = MINIMUM_SALARY
+        ) {
+            const netBeforeTax = revenue - expenses;
+            const startSalary = Math.max(minSalary, 0);
+            const maxSalary = netBeforeTax - SL_TOTAL_OVERHEAD;
+
+            let optimalSalary = startSalary;
+            let minTotalTax = Infinity;
+
+            for (let salary = startSalary; salary <= maxSalary; salary += salaryStep) {
+                const irpf = calculateIRPF(salary);
+                const profitBeforeIS = netBeforeTax - salary - SL_TOTAL_OVERHEAD;
+                const corporateTax = Math.max(0, profitBeforeIS) * CORPORATE_TAX_RATE;
+                const dividends = Math.max(0, profitBeforeIS - corporateTax);
+                const dividendTax = calculateSavingsTax(dividends);
+                const totalTax = irpf + corporateTax + dividendTax;
+
+                if (totalTax < minTotalTax) {
+                    minTotalTax = totalTax;
+                    optimalSalary = salary;
+                }
+            }
+
+            return Math.round(optimalSalary * 100) / 100;
+        }
+
+        /**
+         * Calculates the optimal division of revenue between Autónomo and SL.
+         * @param {number} revenue - Total revenue in euros
+         * @param {number} expenses - Total expenses in euros
+         * @param {number} step - Revenue increment step for optimization
+         * @returns {number} The optimal autónomo revenue that minimizes total taxes
+         */
+        function calculateOptimalAutonomoSocietarioSplit(
+            revenue,
+            expenses,
+            step = 1000
+        ) {
+            const netBeforeTax = revenue - expenses;
+            const minAutonomoRevenue = 0;
+            const maxAutonomoRevenue = netBeforeTax - SL_TOTAL_OVERHEAD;
+
+            let optimalAutonomoRevenue = minAutonomoRevenue;
+            let minTotalTax = Infinity;
+
+            for (
+                let autonomoRevenue = minAutonomoRevenue;
+                autonomoRevenue <= maxAutonomoRevenue;
+                autonomoRevenue += step
+            ) {
+                const slRevenue = netBeforeTax - autonomoRevenue;
+                const reta = calculateRETA(autonomoRevenue);
+                const autonomoTaxableBase = autonomoRevenue - reta;
+                const autonomoIrpf = calculateIRPF(Math.max(0, autonomoTaxableBase));
+                const profitBeforeIS = slRevenue - SL_TOTAL_OVERHEAD;
+                const corporateTax = Math.max(0, profitBeforeIS) * CORPORATE_TAX_RATE;
+                const dividends = Math.max(0, profitBeforeIS - corporateTax);
+                const dividendTax = calculateSavingsTax(dividends);
+                const totalTax = reta + autonomoIrpf + corporateTax + dividendTax;
+
+                if (totalTax < minTotalTax) {
+                    minTotalTax = totalTax;
+                    optimalAutonomoRevenue = autonomoRevenue;
+                }
+            }
+
+            return Math.round(optimalAutonomoRevenue * 100) / 100;
+        }
+
+        /**
+         * Calculates the "Autónomo Societario" scenario.
+         * @param {number} revenue - Total revenue in euros
+         * @param {number} expenses - Total expenses in euros
+         * @returns {{autonomoRevenue: number, slRevenue: number, reta: number, irpf: number, corporateTax: number, dividends: number, dividendTax: number, totalTax: number, netLiquid: number}}
+         */
+        function calculateAutonomoSocietarioScenario(revenue, expenses) {
+            const netBeforeTax = revenue - expenses;
+            const optimalAutonomoRevenue = calculateOptimalAutonomoSocietarioSplit(
+                revenue,
+                expenses
+            );
+            const slRevenue = netBeforeTax - optimalAutonomoRevenue;
+
+            const reta = calculateRETA(optimalAutonomoRevenue);
+            const autonomoTaxableBase = optimalAutonomoRevenue - reta;
+            const autonomoIrpf = calculateIRPF(Math.max(0, autonomoTaxableBase));
+            const autonomoNet = optimalAutonomoRevenue - reta - autonomoIrpf;
+
+            const profitBeforeIS = slRevenue - SL_TOTAL_OVERHEAD;
+            const corporateTax = Math.max(0, profitBeforeIS) * CORPORATE_TAX_RATE;
+            const dividends = Math.max(0, profitBeforeIS - corporateTax);
+            const dividendTax = calculateSavingsTax(dividends);
+            const slNet = dividends - dividendTax;
+
+            const totalNetLiquid = autonomoNet + slNet;
+            const totalTax = reta + autonomoIrpf + corporateTax + dividendTax;
+
+            return {
+                autonomoRevenue: Math.round(optimalAutonomoRevenue * 100) / 100,
+                slRevenue: Math.round(slRevenue * 100) / 100,
+                reta: Math.round(reta * 100) / 100,
+                irpf: Math.round(autonomoIrpf * 100) / 100,
+                corporateTax: Math.round(corporateTax * 100) / 100,
+                dividends: Math.round(dividends * 100) / 100,
+                dividendTax: Math.round(dividendTax * 100) / 100,
+                totalTax: Math.round(totalTax * 100) / 100,
+                netLiquid: Math.round(totalNetLiquid * 100) / 100,
+            };
+        }
+
+        /**
+         * Calculates the optimal SL scenario for a given revenue level.
+         * @param {number} revenue - Total revenue in euros
+         * @param {number} expenses - Total expenses in euros
+         * @param {number} salaryStep - Salary increment step for optimization
+         * @param {number} minSalary - Minimum salary to start calculations from
+         * @returns {Object} The optimal scenario for this revenue level
+         */
+        function calculateOptimalSLScenario(
+            revenue,
+            expenses,
+            salaryStep = 1000,
+            minSalary = MINIMUM_SALARY
+        ) {
+            const netBeforeTax = revenue - expenses;
+            const optimalSalary = calculateOptimalSalaryForMinTaxes(
+                revenue,
+                expenses,
+                salaryStep,
+                minSalary
+            );
+
+            const profitBeforeIS = netBeforeTax - optimalSalary - SL_TOTAL_OVERHEAD;
+            const corporateTax = Math.max(0, profitBeforeIS) * CORPORATE_TAX_RATE;
+            const dividends = Math.max(0, profitBeforeIS - corporateTax);
+            const irpf = calculateIRPF(optimalSalary);
+            const dividendTax = calculateSavingsTax(dividends);
+            const netLiquid = optimalSalary + dividends - irpf - dividendTax;
+
+            const autonomoScenario = calculateAutonomoScenario(revenue, expenses);
+            const autonomoSocietarioScenario = calculateAutonomoSocietarioScenario(
+                revenue,
+                expenses
+            );
+
+            return {
+                revenue,
+                optimalSalary: Math.round(optimalSalary * 100) / 100,
+                irpf: Math.round(irpf * 100) / 100,
+                corporateTax: Math.round(corporateTax * 100) / 100,
+                dividends: Math.round(dividends * 100) / 100,
+                dividendTax: Math.round(dividendTax * 100) / 100,
+                slNetLiquid: Math.round(netLiquid * 100) / 100,
+                autonomoNetLiquid: autonomoScenario.netLiquid,
+                autonomoTotalTax: autonomoScenario.totalTax,
+                autonomoSocietarioTotalTax: autonomoSocietarioScenario.totalTax,
+                autonomoSocietarioNetLiquid: autonomoSocietarioScenario.netLiquid,
+            };
+        }
+
+        /**
+         * Calculates tax scenarios for different revenue levels.
+         * @param {number} minRevenue - Minimum revenue to analyze
+         * @param {number} maxRevenue - Maximum revenue to analyze
+         * @param {number} revenueStep - Revenue increment step in euros
+         * @param {number} expenses - Total expenses in euros
+         * @param {number} salaryStep - Salary increment step for optimization
+         * @returns {Array} Array of tax calculation results for each revenue level
+         */
+        function calculateTaxScenarios(
+            minRevenue,
+            maxRevenue,
+            revenueStep,
+            expenses,
+            salaryStep = 1000
+        ) {
+            const results = [];
+
+            for (
+                let revenue = minRevenue;
+                revenue <= maxRevenue;
+                revenue += revenueStep
+            ) {
+                const scenario = calculateOptimalSLScenario(
+                    revenue,
+                    expenses,
+                    salaryStep,
+                    MINIMUM_SALARY
+                );
+                results.push(scenario);
+            }
+
+            return results;
+        }
+
+        /**
+         * Finds the revenue level that maximizes net liquid for SL.
+         * @param {Array} results - Array of tax calculation results
+         * @returns {Object} The result with the maximum net liquid
+         */
+        function findSweetSpot(results) {
+            if (results.length === 0) {
+                throw new Error("No results provided to find sweet spot");
+            }
+
+            return results.reduce(
+                (max, r) => (r.slNetLiquid > max.slNetLiquid ? r : max),
+                results[0]
+            );
+        }
+
+        /**
+         * Calculates detailed tax analysis for different salary levels within a SL.
+         * @param {number} revenue - Total revenue in euros
+         * @param {number} expenses - Total expenses in euros
+         * @param {number} salaryStep - Salary increment step
+         * @param {number} minSalary - Minimum salary to start calculations from
+         * @returns {Array} Array of salary analysis results
+         */
+        function calculateSalaryAnalysis(
+            revenue,
+            expenses,
+            salaryStep = 1000,
+            minSalary = MINIMUM_SALARY
+        ) {
+            const netBeforeTax = revenue - expenses;
+            const results = [];
+
+            const startSalary = Math.max(minSalary, 0);
+            const maxSalary = netBeforeTax;
+
+            for (let salary = startSalary; salary <= maxSalary; salary += salaryStep) {
+                const irpf = calculateIRPF(salary);
+                const profitBeforeIS = netBeforeTax - salary - SL_TOTAL_OVERHEAD;
+                const corporateTax = Math.max(0, profitBeforeIS) * CORPORATE_TAX_RATE;
+                const dividends = Math.max(0, profitBeforeIS - corporateTax);
+                const dividendTax = calculateSavingsTax(dividends);
+                const totalTax = irpf + corporateTax + dividendTax + SL_TOTAL_OVERHEAD;
+                const netLiquid = salary + dividends - irpf - dividendTax;
+
+                results.push({
+                    salary,
+                    irpf: Math.round(irpf * 100) / 100,
+                    corporateTax: Math.round(corporateTax * 100) / 100,
+                    dividends: Math.round(dividends * 100) / 100,
+                    dividendTax: Math.round(dividendTax * 100) / 100,
+                    totalTax: Math.round(totalTax * 100) / 100,
+                    netLiquid: Math.round(netLiquid * 100) / 100,
+                });
+            }
+
+            return results;
+        }
+
+        /**
+         * Finds the break-even point where Autónomo Societario becomes more advantageous.
+         * @param {Array} results - Array of tax calculation results
+         * @returns {Object|null} The break-even point, or null if Autónomo Societario is never better
+         */
+        function findBreakEvenPoint(results) {
+            if (results.length === 0) {
+                return null;
+            }
+
+            const tolerance = 1;
+            for (const result of results) {
+                const diff = result.autonomoSocietarioNetLiquid - result.autonomoNetLiquid;
+                if (diff >= -tolerance) {
+                    return result;
+                }
+            }
+
+            return null;
+        }
+
+        /**
+         * Generates a comparison table for specific revenue scenarios.
+         * @param {Array} revenueScenarios - Array of revenue amounts to compare
+         * @param {number} expenses - Total expenses in euros
+         * @returns {string} HTML table content
+         */
+        function generateComparisonTable(revenueScenarios, expenses) {
+            let tableHTML = `
+                <div style="margin: 50px 0;">
+                    <h2 style="text-align: center; color: #333; margin-bottom: 30px;">
+                        📊 Tabla Comparativa: Autónomo Normal vs Autónomo Societario (SL)
+                    </h2>
+                    <div style="overflow-x: auto;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th style="text-align: left;">Concepto</th>`;
+
+            for (const revenue of revenueScenarios) {
+                tableHTML += `<th>${formatCurrency(revenue)}</th>`;
+            }
+
+            tableHTML += `
+                                </tr>
+                            </thead>
+                            <tbody>`;
+
+            // Autónomo Normal section
+            tableHTML += `
+                                <tr style="background: #fff9e6;">
+                                    <td style="font-weight: bold;" colspan="${revenueScenarios.length + 1}">👤 AUTÓNOMO NORMAL</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding-left: 30px;">Ingresos</td>`;
+            for (const rev of revenueScenarios) {
+                tableHTML += `<td style="text-align: right;">${formatCurrency(rev)}</td>`;
+            }
+            tableHTML += `</tr>
+                                <tr>
+                                    <td style="padding-left: 30px;">Gastos</td>`;
+            for (const rev of revenueScenarios) {
+                tableHTML += `<td style="text-align: right;">${formatCurrency(expenses)}</td>`;
+            }
+            tableHTML += `</tr>
+                                <tr>
+                                    <td style="padding-left: 30px;">Cuota Autónomos (RETA)</td>`;
+            for (const rev of revenueScenarios) {
+                const scenario = calculateAutonomoScenario(rev, expenses);
+                tableHTML += `<td style="text-align: right;">${formatCurrency(scenario.reta)}</td>`;
+            }
+            tableHTML += `</tr>
+                                <tr>
+                                    <td style="padding-left: 30px;">IRPF</td>`;
+            for (const rev of revenueScenarios) {
+                const scenario = calculateAutonomoScenario(rev, expenses);
+                tableHTML += `<td style="text-align: right;">${formatCurrency(scenario.irpf)}</td>`;
+            }
+            tableHTML += `</tr>
+                                <tr style="background: #f0f0f0; font-weight: bold;">
+                                    <td style="padding-left: 30px;">TOTAL IMPUESTOS + GASTOS</td>`;
+            for (const rev of revenueScenarios) {
+                const scenario = calculateAutonomoScenario(rev, expenses);
+                tableHTML += `<td style="text-align: right;">${formatCurrency(scenario.totalTax)}</td>`;
+            }
+            tableHTML += `</tr>
+                                <tr style="background: #e8f5e9; font-weight: bold;">
+                                    <td style="padding-left: 30px;">NETO FINAL</td>`;
+            for (const rev of revenueScenarios) {
+                const scenario = calculateAutonomoScenario(rev, expenses);
+                tableHTML += `<td style="text-align: right;">${formatCurrency(scenario.netLiquid)}</td>`;
+            }
+            tableHTML += `</tr>`;
+
+            // Autónomo Societario section
+            tableHTML += `
+                                <tr style="background: #e6f7ff;">
+                                    <td style="font-weight: bold;" colspan="${revenueScenarios.length + 1}">🏢 AUTÓNOMO SOCIETARIO (con SL)</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding-left: 30px;">Ingresos Totales</td>`;
+            for (const rev of revenueScenarios) {
+                tableHTML += `<td style="text-align: right;">${formatCurrency(rev)}</td>`;
+            }
+            tableHTML += `</tr>
+                                <tr>
+                                    <td style="padding-left: 30px;">Facturación como Autónomo</td>`;
+            for (const rev of revenueScenarios) {
+                const scenario = calculateAutonomoSocietarioScenario(rev, expenses);
+                tableHTML += `<td style="text-align: right;">${formatCurrency(scenario.autonomoRevenue)}</td>`;
+            }
+            tableHTML += `</tr>
+                                <tr>
+                                    <td style="padding-left: 30px;">Ingresos a SL</td>`;
+            for (const rev of revenueScenarios) {
+                const scenario = calculateAutonomoSocietarioScenario(rev, expenses);
+                tableHTML += `<td style="text-align: right;">${formatCurrency(scenario.slRevenue)}</td>`;
+            }
+            tableHTML += `</tr>
+                                <tr>
+                                    <td style="padding-left: 30px;">Gastos</td>`;
+            for (const rev of revenueScenarios) {
+                tableHTML += `<td style="text-align: right;">${formatCurrency(expenses)}</td>`;
+            }
+            tableHTML += `</tr>
+                                <tr>
+                                    <td style="padding-left: 50px; font-style: italic;">Cuota Autónomos (RETA)</td>`;
+            for (const rev of revenueScenarios) {
+                const scenario = calculateAutonomoSocietarioScenario(rev, expenses);
+                tableHTML += `<td style="text-align: right;">${formatCurrency(scenario.reta)}</td>`;
+            }
+            tableHTML += `</tr>
+                                <tr>
+                                    <td style="padding-left: 50px; font-style: italic;">IRPF (sobre facturación autónomo)</td>`;
+            for (const rev of revenueScenarios) {
+                const scenario = calculateAutonomoSocietarioScenario(rev, expenses);
+                tableHTML += `<td style="text-align: right;">${formatCurrency(scenario.irpf)}</td>`;
+            }
+            tableHTML += `</tr>
+                                <tr>
+                                    <td style="padding-left: 50px; font-style: italic;">Impuesto de Sociedades (IS)</td>`;
+            for (const rev of revenueScenarios) {
+                const scenario = calculateAutonomoSocietarioScenario(rev, expenses);
+                tableHTML += `<td style="text-align: right;">${formatCurrency(scenario.corporateTax)}</td>`;
+            }
+            tableHTML += `</tr>
+                                <tr>
+                                    <td style="padding-left: 50px; font-style: italic;">Impuesto sobre Dividendos</td>`;
+            for (const rev of revenueScenarios) {
+                const scenario = calculateAutonomoSocietarioScenario(rev, expenses);
+                tableHTML += `<td style="text-align: right;">${formatCurrency(scenario.dividendTax)}</td>`;
+            }
+            tableHTML += `</tr>
+                                <tr>
+                                    <td style="padding-left: 50px; font-style: italic;">Gastos Gestoría Extra</td>`;
+            for (const rev of revenueScenarios) {
+                tableHTML += `<td style="text-align: right;">${formatCurrency(SL_OPERATIONAL_COSTS.EXTRA_ACCOUNTING)}</td>`;
+            }
+            tableHTML += `</tr>
+                                <tr>
+                                    <td style="padding-left: 50px; font-style: italic;">Gastos Mercantiles (Depósito cuentas, etc.)</td>`;
+            for (const rev of revenueScenarios) {
+                tableHTML += `<td style="text-align: right;">${formatCurrency(SL_OPERATIONAL_COSTS.COMMERCIAL_EXPENSES)}</td>`;
+            }
+            tableHTML += `</tr>
+                                <tr style="background: #f0f0f0; font-weight: bold;">
+                                    <td style="padding-left: 30px;">TOTAL IMPUESTOS + GASTOS</td>`;
+            for (const rev of revenueScenarios) {
+                const scenario = calculateAutonomoSocietarioScenario(rev, expenses);
+                const totalWithOverhead = scenario.totalTax + SL_TOTAL_OVERHEAD;
+                tableHTML += `<td style="text-align: right;">${formatCurrency(totalWithOverhead)}</td>`;
+            }
+            tableHTML += `</tr>
+                                <tr style="background: #e8f5e9; font-weight: bold;">
+                                    <td style="padding-left: 30px;">NETO FINAL</td>`;
+            for (const rev of revenueScenarios) {
+                const scenario = calculateAutonomoSocietarioScenario(rev, expenses);
+                tableHTML += `<td style="text-align: right;">${formatCurrency(scenario.netLiquid)}</td>`;
+            }
+            tableHTML += `</tr>
+                                <tr style="background: #fff3cd; font-weight: bold;">
+                                    <td style="padding-left: 30px;">DIFERENCIA (SL - Autónomo)</td>`;
+            for (const rev of revenueScenarios) {
+                const autonomoSc = calculateAutonomoScenario(rev, expenses);
+                const slSc = calculateAutonomoSocietarioScenario(rev, expenses);
+                const diff = slSc.netLiquid - autonomoSc.netLiquid;
+                const diffColor = diff >= 0 ? "#28a745" : "#dc3545";
+                tableHTML += `<td style="text-align: right; color: ${diffColor};">${formatCurrency(diff)}</td>`;
+            }
+            tableHTML += `</tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>`;
+
+            return tableHTML;
+        }
+
+        // Main execution when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            const results = calculateTaxScenarios(
+                MIN_REVENUE,
+                MAX_REVENUE,
+                REVENUE_STEP,
+                EXPENSES,
+                SALARY_STEP
+            );
+            const sweetSpot = findSweetSpot(results);
+            const breakEven = findBreakEvenPoint(results);
+
+            // Update info panel
+            const infoPanel = document.getElementById('infoPanel');
+            infoPanel.innerHTML = `
+                <div class="info-item">
+                    <div class="info-label">Rango de Ingresos</div>
+                    <div class="info-value">${formatCurrency(results[0]?.revenue || 0)} - ${formatCurrency(results[results.length - 1]?.revenue || 0)}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Gastos</div>
+                    <div class="info-value">${formatCurrency(EXPENSES)}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Costes Operativos SL</div>
+                    <div class="info-value">${formatCurrency(SL_TOTAL_OVERHEAD)}/año</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Impuesto de Sociedades</div>
+                    <div class="info-value">${CORPORATE_TAX_RATE * 100}%</div>
+                </div>
+            `;
+
+            // Update break-even panel
+            const breakEvenPanel = document.getElementById('breakEvenPanel');
+            if (breakEven) {
+                breakEvenPanel.innerHTML = `
+                    <div class="comparison-panel">
+                        <h2>⚖️ Punto de Equilibrio (Break-Even)</h2>
+                        <div class="break-even">A partir de ${formatCurrency(breakEven.revenue)} de ingresos, el Autónomo Societario (SL) es más ventajoso</div>
+                    </div>
+                `;
+            } else {
+                breakEvenPanel.innerHTML = `
+                    <div class="comparison-panel warning">
+                        <h2>⚠️ Autónomo es más ventajoso en este rango</h2>
+                        <p>En el rango analizado (${formatCurrency(results[0]?.revenue || 0)} - ${formatCurrency(results[results.length - 1]?.revenue || 0)}), ser autónomo resulta más rentable que constituir una SL.</p>
+                    </div>
+                `;
+            }
+
+            // Update sweet spot panel
+            const sweetSpotPanel = document.getElementById('sweetSpotPanel');
+            sweetSpotPanel.innerHTML = `
+                <div class="sweet-spot">
+                    <h2>💰 Punto Dulce (Sweet Spot) - Autónomo Societario</h2>
+                    <div class="salary">Salario Óptimo: ${formatCurrency(sweetSpot.optimalSalary)}</div>
+                    <div class="details">
+                        <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.3);">
+                            <div><strong>Estrategia:</strong></div>
+                            <div style="margin-top: 8px; font-size: 0.9em;">
+                                • Salario fijo: ${formatCurrency(sweetSpot.optimalSalary)}<br>
+                                • Resto como dividendos (tras IS al 15%)<br>
+                                • Minimiza la carga fiscal total
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Update comparison table
+            const comparisonTable = document.getElementById('comparisonTable');
+            comparisonTable.innerHTML = generateComparisonTable([20000, 50000, 100000], EXPENSES);
+
+            // Update salary analysis title
+            const salaryAnalysisTitle = document.getElementById('salaryAnalysisTitle');
+            salaryAnalysisTitle.textContent = `Análisis de impuestos y neto final para diferentes niveles de salario con ${formatCurrency(sweetSpot.revenue)} de ingresos`;
+
+            // Prepare data for charts
+            const revenueLabels = results.map((r) => r.revenue);
+            const autonomoSocietarioNetLiquidData = results.map(
+                (r) => r.autonomoSocietarioNetLiquid
+            );
+            const autonomoNetLiquidData = results.map((r) => r.autonomoNetLiquid);
+            const autonomoSocietarioTotalTaxData = results.map((r) => {
+                const scenario = calculateAutonomoSocietarioScenario(r.revenue, EXPENSES);
+                return scenario.totalTax + SL_TOTAL_OVERHEAD;
+            });
+            const autonomoTotalTaxData = results.map((r) => r.autonomoTotalTax);
+
+            const salaryAnalysis = calculateSalaryAnalysis(
+                sweetSpot.revenue,
+                EXPENSES,
+                SALARY_STEP,
+                MINIMUM_SALARY
+            );
+            const salaryLabels = salaryAnalysis.map((s) => s.salary);
+            const salaryIrpfData = salaryAnalysis.map((s) => s.irpf);
+            const salaryCitAndDivData = salaryAnalysis.map(
+                (s) => s.corporateTax + s.dividendTax
+            );
+            const salaryTotalTaxData = salaryAnalysis.map((s) => s.totalTax);
+            const salaryNetLiquidData = salaryAnalysis.map((s) => s.netLiquid);
+
+            const minTaxIndex = salaryAnalysis.reduce(
+                (minIdx, current, idx, arr) =>
+                    current.totalTax < arr[minIdx].totalTax ? idx : minIdx,
+                0
+            );
+            const minTaxSalary = salaryAnalysis[minTaxIndex];
+
+            // Create main tax chart
+            const ctx = document.getElementById('taxChart').getContext('2d');
+            const taxChartDatasets = [
+                {
+                    label: 'Neto Final Autónomo Societario (SL)',
+                    data: autonomoSocietarioNetLiquidData,
+                    borderColor: 'rgb(34, 197, 94)',
+                    backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                    borderWidth: 3,
+                    fill: false,
+                    tension: 0.1,
+                    pointRadius: 0
+                },
+                {
+                    label: 'Impuestos + Gastos - Autónomo Societario',
+                    data: autonomoSocietarioTotalTaxData,
+                    borderColor: 'rgb(34, 197, 94)',
+                    backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                    borderWidth: 2,
+                    borderDash: [5, 5],
+                    fill: false,
+                    tension: 0.1,
+                    pointRadius: 0
+                },
+                {
+                    label: 'Neto Final Autónomo',
+                    data: autonomoNetLiquidData,
+                    borderColor: 'rgb(234, 179, 8)',
+                    backgroundColor: 'rgba(234, 179, 8, 0.1)',
+                    borderWidth: 3,
+                    fill: false,
+                    tension: 0.1,
+                    pointRadius: 0
+                },
+                {
+                    label: 'Impuestos + Gastos - Autónomo',
+                    data: autonomoTotalTaxData,
+                    borderColor: 'rgb(234, 179, 8)',
+                    backgroundColor: 'rgba(234, 179, 8, 0.1)',
+                    borderWidth: 2,
+                    borderDash: [5, 5],
+                    fill: false,
+                    tension: 0.1,
+                    pointRadius: 0
+                }
+            ];
+
+            if (breakEven) {
+                const breakEvenData = Array(revenueLabels.length).fill(null);
+                const breakEvenIndex = revenueLabels.findIndex(r => r === breakEven.revenue);
+                if (breakEvenIndex !== -1) {
+                    breakEvenData[breakEvenIndex] = breakEven.autonomoSocietarioNetLiquid;
+                }
+                taxChartDatasets.push({
+                    label: 'Break-Even Point',
+                    data: breakEvenData,
+                    borderColor: 'rgb(255, 0, 0)',
+                    backgroundColor: 'rgba(255, 0, 0, 0.5)',
+                    borderWidth: 0,
+                    pointRadius: 8,
+                    pointHoverRadius: 10,
+                    pointBackgroundColor: 'rgb(255, 0, 0)',
+                    pointBorderColor: 'white',
+                    pointBorderWidth: 2,
+                    showLine: false
+                });
+            }
+
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: revenueLabels,
+                    datasets: taxChartDatasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Comparativa SL vs Autónomo - Neto Final en el Bolsillo',
+                            font: {
+                                size: 18
+                            },
+                            padding: 20
+                        },
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                font: {
+                                    size: 12
+                                },
+                                padding: 15
+                            }
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': ' + new Intl.NumberFormat('es-ES', {
+                                        style: 'currency',
+                                        currency: 'EUR',
+                                        minimumFractionDigits: 0,
+                                        maximumFractionDigits: 0
+                                    }).format(context.parsed.y);
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Ingresos de la Actividad (€)',
+                                font: {
+                                    size: 14,
+                                    weight: 'bold'
+                                }
+                            },
+                            ticks: {
+                                callback: function(value, index, ticks) {
+                                    if (index < revenueLabels.length) {
+                                        const revenueValue = revenueLabels[index];
+                                        return new Intl.NumberFormat('es-ES', {
+                                            minimumFractionDigits: 0,
+                                            maximumFractionDigits: 0
+                                        }).format(revenueValue) + '€';
+                                    }
+                                    if (typeof value === 'number') {
+                                        return new Intl.NumberFormat('es-ES', {
+                                            minimumFractionDigits: 0,
+                                            maximumFractionDigits: 0
+                                        }).format(value) + '€';
+                                    }
+                                    return '';
+                                },
+                                maxTicksLimit: 20,
+                                autoSkip: true,
+                                autoSkipPadding: 10
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Importe (€)',
+                                font: {
+                                    size: 14,
+                                    weight: 'bold'
+                                }
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return new Intl.NumberFormat('es-ES').format(value) + '€';
+                                }
+                            }
+                        }
+                    },
+                    interaction: {
+                        mode: 'nearest',
+                        axis: 'x',
+                        intersect: false
+                    }
+                }
+            });
+
+            // Create salary analysis chart
+            const ctx2 = document.getElementById('salaryChart').getContext('2d');
+            new Chart(ctx2, {
+                type: 'line',
+                data: {
+                    labels: salaryLabels,
+                    datasets: [
+                        {
+                            label: 'IRPF (Salario)',
+                            data: salaryIrpfData,
+                            borderColor: 'rgb(239, 68, 68)',
+                            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                            borderWidth: 2,
+                            fill: false,
+                            tension: 0.1
+                        },
+                        {
+                            label: 'IS + Impuesto Dividendos',
+                            data: salaryCitAndDivData,
+                            borderColor: 'rgb(59, 130, 246)',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            borderWidth: 2,
+                            fill: false,
+                            tension: 0.1
+                        },
+                        {
+                            label: 'TOTAL IMPUESTOS SL',
+                            data: salaryTotalTaxData,
+                            borderColor: 'rgb(34, 197, 94)',
+                            backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                            borderWidth: 3,
+                            fill: false,
+                            tension: 0.1,
+                            pointRadius: 0
+                        },
+                        {
+                            label: 'Neto Final en el Bolsillo',
+                            data: salaryNetLiquidData,
+                            borderColor: 'rgb(147, 51, 234)',
+                            backgroundColor: 'rgba(147, 51, 234, 0.1)',
+                            borderWidth: 3,
+                            borderDash: [10, 5],
+                            fill: false,
+                            tension: 0.1,
+                            pointRadius: 0
+                        },
+                        {
+                            label: 'Break-Even (Mínimo Impuestos)',
+                            data: (() => {
+                                const data = Array(salaryLabels.length).fill(null);
+                                data[minTaxIndex] = minTaxSalary.totalTax;
+                                return data;
+                            })(),
+                            borderColor: 'rgb(255, 0, 0)',
+                            backgroundColor: 'rgba(255, 0, 0, 0.5)',
+                            borderWidth: 0,
+                            pointRadius: 8,
+                            pointHoverRadius: 10,
+                            pointBackgroundColor: 'rgb(255, 0, 0)',
+                            pointBorderColor: 'white',
+                            pointBorderWidth: 2,
+                            showLine: false
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: `Análisis de Impuestos por Nivel de Salario (${formatCurrency(sweetSpot.revenue)} ingresos)`,
+                            font: {
+                                size: 18
+                            },
+                            padding: 20
+                        },
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                font: {
+                                    size: 12
+                                },
+                                padding: 15
+                            }
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': ' + new Intl.NumberFormat('es-ES', {
+                                        style: 'currency',
+                                        currency: 'EUR',
+                                        minimumFractionDigits: 0,
+                                        maximumFractionDigits: 0
+                                    }).format(context.parsed.y);
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Salario (€)',
+                                font: {
+                                    size: 14,
+                                    weight: 'bold'
+                                }
+                            },
+                            ticks: {
+                                callback: function(value, index, ticks) {
+                                    if (index < salaryLabels.length) {
+                                        const salaryValue = salaryLabels[index];
+                                        return new Intl.NumberFormat('es-ES', {
+                                            minimumFractionDigits: 0,
+                                            maximumFractionDigits: 0
+                                        }).format(salaryValue) + '€';
+                                    }
+                                    if (typeof value === 'number') {
+                                        return new Intl.NumberFormat('es-ES', {
+                                            minimumFractionDigits: 0,
+                                            maximumFractionDigits: 0
+                                        }).format(value) + '€';
+                                    }
+                                    return '';
+                                },
+                                maxTicksLimit: 20,
+                                autoSkip: true,
+                                autoSkipPadding: 10
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Importe (€)',
+                                font: {
+                                    size: 14,
+                                    weight: 'bold'
+                                }
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return new Intl.NumberFormat('es-ES').format(value) + '€';
+                                }
+                            }
+                        }
+                    },
+                    interaction: {
+                        mode: 'nearest',
+                        axis: 'x',
+                        intersect: false
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>

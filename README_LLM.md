@@ -10,10 +10,10 @@ Find the exact mathematical point where the sum of (Income Tax + Corporate Tax +
 - **Sweet Spot Definition:** The salary point where the marginal cost of IRPF exceeds the combined cost of Corporate Tax + Dividend Tax.
 
 ## Technical Stack
-- **Language:** TypeScript.
-- **Execution:** `ts-node`.
-- **Visualization:** Chart.js (via generated HTML).
-- **Output:** `index.html`.
+- **Language:** JavaScript (vanilla, no frameworks).
+- **Execution:** Directly in the browser (no build step required).
+- **Visualization:** Chart.js (loaded from CDN).
+- **File:** `index.html` (standalone HTML file with embedded JavaScript).
 
 ## Calculation Table (IRPF 2025/2026 Applied)
 | Range (From-To) | Total Rate (State + Regional) |
@@ -29,10 +29,12 @@ Find the exact mathematical point where the sum of (Income Tax + Corporate Tax +
 | 60.000€ - 300.000€ | 43.00% |
 
 ## Current Code Architecture
-- `TaxBracket` interface: Defines the progressive tiers.
+- All calculation logic is embedded in `index.html` as JavaScript.
 - `calculateIRPF()`: A loop-based function to handle progressive tax brackets correctly.
 - `calculateSavingsTax()`: Logic for dividend taxation.
-- `fs.writeFileSync`: Used to pipe the results into an HTML/JS template for visualization.
+- `calculateOptimalSalaryForMinTaxes()`: Finds the salary that minimizes total taxes.
+- `calculateAutonomoSocietarioScenario()`: Calculates the optimal split between autónomo and SL revenue.
+- Chart.js is loaded from CDN and charts are generated dynamically on page load.
 
 ## Instructions for the AI
-When modifying this code, always ensure the progressive nature of the taxes is preserved. Do not apply a single percentage to the total amount. Any change in the revenue should automatically trigger a recalculation of the "Sweet Spot".
+When modifying this code, always ensure the progressive nature of the taxes is preserved. Do not apply a single percentage to the total amount. Any change in the revenue range should automatically trigger a recalculation of the "Sweet Spot" when the page loads. All calculations happen client-side in the browser.
