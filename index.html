@@ -419,10 +419,21 @@
         }
 
         /**
+         * Calculates the RETA contribution for an autónomo societario based on salary.
+         * @param {number} salary - Annual salary in euros
+         * @returns {number} Annual RETA contribution in euros
+         */
+        function calculateRETAForAutonomoSocietario(salary) {
+            // For autónomo societario, RETA is calculated based on their salary
+            return calculateRETA(salary);
+        }
+
+        /**
          * Calculates the optimal salary that minimizes total taxes.
          * Uses a two-phase approach: coarse search first, then fine refinement around candidates.
+         * Now includes RETA for autónomo societario.
          * @param {number} revenue - Total revenue in euros
-         * @param {number} expenses - Total expenses in euros
+         * @param {number} expenses - Total expenses in euros (user's operational costs, already includes SL overhead)
          * @param {number} salaryStep - Salary increment step for optimization
          * @param {number} minSalary - Minimum salary to start calculations from
          * @returns {number} The optimal salary that minimizes total taxes
@@ -435,13 +446,13 @@
         ) {
             const netBeforeTax = revenue - expenses;
             const startSalary = Math.max(minSalary, 0);
-            const maxSalary = netBeforeTax - SL_TOTAL_OVERHEAD;
+            const maxSalary = netBeforeTax;
             const corporateTaxRate = getCorporateTaxRate();
 
             // Use a finer step for more accurate optimization
             // If salaryStep is large (1000), use 100€ for initial search to catch all minima
             const searchStep = salaryStep >= 500 ? 100 : Math.max(10, salaryStep);
-            
+
             let optimalSalary = startSalary;
             let minTotalTax = Infinity;
             const candidates = []; // Store all candidates within 2% of minimum
@@ -449,11 +460,12 @@
             // Phase 1: Search with finer step to find all potential minima
             for (let salary = startSalary; salary <= maxSalary; salary += searchStep) {
                 const irpf = calculateIRPF(salary);
-                const profitBeforeIS = netBeforeTax - salary - SL_TOTAL_OVERHEAD;
+                const reta = calculateRETAForAutonomoSocietario(salary);
+                const profitBeforeIS = netBeforeTax - salary;
                 const corporateTax = Math.max(0, profitBeforeIS) * corporateTaxRate;
                 const dividends = Math.max(0, profitBeforeIS - corporateTax);
                 const dividendTax = calculateSavingsTax(dividends);
-                const totalTax = irpf + corporateTax + dividendTax;
+                const totalTax = irpf + reta + corporateTax + dividendTax;
 
                 if (totalTax < minTotalTax) {
                     minTotalTax = totalTax;
@@ -476,11 +488,12 @@
 
                 for (let salary = refineStart; salary <= refineEnd; salary += refineStep) {
                     const irpf = calculateIRPF(salary);
-                    const profitBeforeIS = netBeforeTax - salary - SL_TOTAL_OVERHEAD;
+                    const reta = calculateRETAForAutonomoSocietario(salary);
+                    const profitBeforeIS = netBeforeTax - salary;
                     const corporateTax = Math.max(0, profitBeforeIS) * corporateTaxRate;
                     const dividends = Math.max(0, profitBeforeIS - corporateTax);
                     const dividendTax = calculateSavingsTax(dividends);
-                    const totalTax = irpf + corporateTax + dividendTax;
+                    const totalTax = irpf + reta + corporateTax + dividendTax;
 
                     if (totalTax < minTotalTax) {
                         minTotalTax = totalTax;
@@ -498,11 +511,12 @@
                         const salary = bracket + offset;
                         if (salary >= startSalary && salary <= maxSalary) {
                             const irpf = calculateIRPF(salary);
-                            const profitBeforeIS = netBeforeTax - salary - SL_TOTAL_OVERHEAD;
+                            const reta = calculateRETAForAutonomoSocietario(salary);
+                            const profitBeforeIS = netBeforeTax - salary;
                             const corporateTax = Math.max(0, profitBeforeIS) * corporateTaxRate;
                             const dividends = Math.max(0, profitBeforeIS - corporateTax);
                             const dividendTax = calculateSavingsTax(dividends);
-                            const totalTax = irpf + corporateTax + dividendTax;
+                            const totalTax = irpf + reta + corporateTax + dividendTax;
 
                             if (totalTax < minTotalTax) {
                                 minTotalTax = totalTax;
@@ -706,8 +720,9 @@
 
         /**
          * Calculates detailed tax analysis for different salary levels within a SL.
+         * Now includes RETA for autónomo societario.
          * @param {number} revenue - Total revenue in euros
-         * @param {number} expenses - Total expenses in euros
+         * @param {number} expenses - Total expenses in euros (user's operational costs)
          * @param {number} salaryStep - Salary increment step
          * @param {number} minSalary - Minimum salary to start calculations from
          * @returns {Array} Array of salary analysis results
@@ -727,16 +742,18 @@
 
             for (let salary = startSalary; salary <= maxSalary; salary += salaryStep) {
                 const irpf = calculateIRPF(salary);
-                const profitBeforeIS = netBeforeTax - salary - SL_TOTAL_OVERHEAD;
+                const reta = calculateRETAForAutonomoSocietario(salary);
+                const profitBeforeIS = netBeforeTax - salary;
                 const corporateTax = Math.max(0, profitBeforeIS) * corporateTaxRate;
                 const dividends = Math.max(0, profitBeforeIS - corporateTax);
                 const dividendTax = calculateSavingsTax(dividends);
-                const totalTax = irpf + corporateTax + dividendTax + SL_TOTAL_OVERHEAD;
-                const netLiquid = salary + dividends - irpf - dividendTax;
+                const totalTax = irpf + reta + corporateTax + dividendTax;
+                const netLiquid = salary + dividends - irpf - reta - dividendTax;
 
                 results.push({
                     salary,
                     irpf: Math.round(irpf * 100) / 100,
+                    reta: Math.round(reta * 100) / 100,
                     corporateTax: Math.round(corporateTax * 100) / 100,
                     dividends: Math.round(dividends * 100) / 100,
                     dividendTax: Math.round(dividendTax * 100) / 100,
@@ -767,6 +784,108 @@
             }
 
             return null;
+        }
+
+        /**
+         * Calculates taxes for a specific salary level (for comparison purposes).
+         * @param {number} netBeforeTax - Net income before taxes
+         * @param {number} salary - Salary to calculate for
+         * @param {number} corporateTaxRate - Corporate tax rate as decimal
+         * @returns {Object} Tax breakdown for this salary
+         */
+        function calculateTaxesForSalary(netBeforeTax, salary, corporateTaxRate) {
+            const irpf = calculateIRPF(salary);
+            const reta = calculateRETAForAutonomoSocietario(salary);
+            const profitBeforeIS = Math.max(0, netBeforeTax - salary);
+            const corporateTax = profitBeforeIS * corporateTaxRate;
+            const dividends = profitBeforeIS - corporateTax;
+            const dividendTax = calculateSavingsTax(dividends);
+            const totalTaxes = irpf + reta + corporateTax + dividendTax;
+            const netLiquid = salary + dividends - irpf - reta - dividendTax;
+
+            return {
+                salary,
+                irpf: Math.round(irpf),
+                reta: Math.round(reta),
+                corporateTax: Math.round(corporateTax),
+                dividends: Math.round(dividends),
+                dividendTax: Math.round(dividendTax),
+                totalTaxes: Math.round(totalTaxes),
+                netLiquid: Math.round(netLiquid)
+            };
+        }
+
+        /**
+         * Generates a salary comparison table showing taxes at different salary levels.
+         * @param {number} netBeforeTax - Net income before taxes
+         * @param {number} optimalSalary - The calculated optimal salary
+         * @param {number} corporateTaxRate - Corporate tax rate as decimal
+         * @returns {string} HTML table content
+         */
+        function generateSalaryComparisonTable(netBeforeTax, optimalSalary, corporateTaxRate) {
+            // Define salary levels to compare
+            const salaryLevels = [
+                { salary: MINIMUM_SALARY, label: 'Mínimo' },
+                { salary: optimalSalary, label: '✓ Óptimo' },
+                { salary: 30000, label: '30.000€' },
+                { salary: 50000, label: '50.000€' }
+            ].filter(s => s.salary <= netBeforeTax).sort((a, b) => a.salary - b.salary);
+
+            // Calculate taxes for each level
+            const comparisons = salaryLevels.map(s => ({
+                ...calculateTaxesForSalary(netBeforeTax, s.salary, corporateTaxRate),
+                label: s.label,
+                isOptimal: Math.abs(s.salary - optimalSalary) < 100
+            }));
+
+            // Find the minimum total taxes to highlight the optimal
+            const minTaxes = Math.min(...comparisons.map(c => c.totalTaxes));
+
+            let html = `
+                <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 6px;">
+                    <h4 style="color: #333; margin-bottom: 15px; text-align: center;">📊 Comparativa por Nivel de Salario</h4>
+                    <div style="overflow-x: auto;">
+                        <table style="width: 100%; border-collapse: collapse; font-size: 0.85em;">
+                            <thead>
+                                <tr style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                                    <th style="padding: 10px; text-align: left;">Salario</th>
+                                    <th style="padding: 10px; text-align: right;">IRPF</th>
+                                    <th style="padding: 10px; text-align: right;">RETA</th>
+                                    <th style="padding: 10px; text-align: right;">IS</th>
+                                    <th style="padding: 10px; text-align: right;">Imp. Div.</th>
+                                    <th style="padding: 10px; text-align: right; font-weight: bold;">TOTAL IMP.</th>
+                                    <th style="padding: 10px; text-align: right; font-weight: bold;">NETO</th>
+                                </tr>
+                            </thead>
+                            <tbody>`;
+
+            for (const c of comparisons) {
+                const isMin = c.totalTaxes === minTaxes;
+                const rowStyle = isMin ? 'background: #d4edda; font-weight: bold;' : '';
+                const highlight = isMin ? ' ✓' : '';
+
+                html += `
+                                <tr style="${rowStyle}">
+                                    <td style="padding: 8px; border-bottom: 1px solid #ddd;">${c.label} (${formatCurrency(c.salary)})</td>
+                                    <td style="padding: 8px; border-bottom: 1px solid #ddd; text-align: right;">${formatCurrency(c.irpf)}</td>
+                                    <td style="padding: 8px; border-bottom: 1px solid #ddd; text-align: right;">${formatCurrency(c.reta)}</td>
+                                    <td style="padding: 8px; border-bottom: 1px solid #ddd; text-align: right;">${formatCurrency(c.corporateTax)}</td>
+                                    <td style="padding: 8px; border-bottom: 1px solid #ddd; text-align: right;">${formatCurrency(c.dividendTax)}</td>
+                                    <td style="padding: 8px; border-bottom: 1px solid #ddd; text-align: right; font-weight: bold;">${formatCurrency(c.totalTaxes)}${highlight}</td>
+                                    <td style="padding: 8px; border-bottom: 1px solid #ddd; text-align: right; font-weight: bold; color: ${isMin ? '#28a745' : '#333'};">${formatCurrency(c.netLiquid)}</td>
+                                </tr>`;
+            }
+
+            html += `
+                            </tbody>
+                        </table>
+                    </div>
+                    <p style="margin-top: 10px; font-size: 0.8em; color: #666; text-align: center;">
+                        La fila verde indica el salario que minimiza los impuestos totales (IRPF + RETA + IS + Dividendos)
+                    </p>
+                </div>`;
+
+            return html;
         }
 
         /**
@@ -979,19 +1098,19 @@
             const estimatedRevenue = parseFloat(document.getElementById('estimatedRevenue').value) || 100000;
             const operationalCosts = parseFloat(document.getElementById('operationalCosts').value) ?? 950;
             const optimalAllocationPanel = document.getElementById('optimalAllocationPanel');
-            
+
             // Calculate optimal salary for these inputs
-            // Note: operationalCosts from slider should be used instead of SL_TOTAL_OVERHEAD
             const netBeforeTax = estimatedRevenue - operationalCosts;
             const optimalSalary = calculateOptimalSalaryForMinTaxes(estimatedRevenue, operationalCosts, 1, MINIMUM_SALARY);
-            const profitBeforeIS = netBeforeTax - optimalSalary - operationalCosts;
+            const profitBeforeIS = netBeforeTax - optimalSalary;
             const corporateTaxRate = getCorporateTaxRate();
             const corporateTax = Math.max(0, profitBeforeIS) * corporateTaxRate;
             const dividends = Math.max(0, profitBeforeIS - corporateTax);
             const irpf = calculateIRPF(optimalSalary);
+            const reta = calculateRETAForAutonomoSocietario(optimalSalary);
             const dividendTax = calculateSavingsTax(dividends);
-            const totalTaxes = irpf + corporateTax + dividendTax;
-            const netLiquid = optimalSalary + dividends - irpf - dividendTax;
+            const totalTaxes = irpf + reta + corporateTax + dividendTax;
+            const netLiquid = optimalSalary + dividends - irpf - reta - dividendTax;
             
             optimalAllocationPanel.innerHTML = `
                 <div style="background: #f0f9ff; padding: 20px; border-radius: 8px; margin: 20px 0;">
@@ -1030,11 +1149,15 @@
                     </div>
                     
                     <div style="background: #fff9e6; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
-                        <h4 style="color: #d97706; margin-bottom: 10px;">📋 Desglose de Impuestos</h4>
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                        <h4 style="color: #d97706; margin-bottom: 10px;">📋 Desglose de Impuestos y Cotizaciones</h4>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px;">
                             <div style="text-align: center; padding: 10px; background: white; border-radius: 6px;">
                                 <div style="font-size: 0.85em; color: #666; margin-bottom: 5px;">IRPF (sobre salario)</div>
                                 <div style="font-size: 1.2em; font-weight: bold; color: #333;">${formatCurrency(irpf)}</div>
+                            </div>
+                            <div style="text-align: center; padding: 10px; background: #fff0f0; border-radius: 6px;">
+                                <div style="font-size: 0.85em; color: #666; margin-bottom: 5px;">RETA Aut. Societario</div>
+                                <div style="font-size: 1.2em; font-weight: bold; color: #333;">${formatCurrency(reta)}</div>
                             </div>
                             <div style="text-align: center; padding: 10px; background: white; border-radius: 6px;">
                                 <div style="font-size: 0.85em; color: #666; margin-bottom: 5px;">Impuesto Sociedades (${(corporateTaxRate * 100).toFixed(1)}%)</div>
@@ -1050,24 +1173,27 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <div style="background: #4bc0c0; padding: 20px; border-radius: 6px; color: white; text-align: center;">
                         <div style="font-size: 1.1em; opacity: 0.9; margin-bottom: 10px;">💰 NETO FINAL EN EL BOLSILLO</div>
                         <div style="font-size: 2.2em; font-weight: bold;">${formatCurrency(netLiquid)}</div>
                         <div style="font-size: 0.9em; opacity: 0.9; margin-top: 10px;">
-                            ${formatCurrency(optimalSalary)} (salario) + ${formatCurrency(dividends)} (dividendos) - ${formatCurrency(irpf)} (IRPF) - ${formatCurrency(dividendTax)} (imp. dividendos) = ${formatCurrency(netLiquid)}
+                            ${formatCurrency(optimalSalary)} (salario) + ${formatCurrency(dividends)} (dividendos) - ${formatCurrency(irpf)} (IRPF) - ${formatCurrency(reta)} (RETA) - ${formatCurrency(dividendTax)} (imp. dividendos) = ${formatCurrency(netLiquid)}
                         </div>
                     </div>
-                    
+
                     <div style="margin-top: 15px; padding: 15px; background: white; border-radius: 6px; font-size: 0.9em; color: #666;">
                         <strong>Cálculo del Reparto Óptimo:</strong><br>
-                        • Beneficio antes de IS = ${formatCurrency(netBeforeTax)} - ${formatCurrency(optimalSalary)} - ${formatCurrency(operationalCosts)} = ${formatCurrency(profitBeforeIS)}<br>
+                        • Beneficio antes de IS = ${formatCurrency(netBeforeTax)} - ${formatCurrency(optimalSalary)} = ${formatCurrency(profitBeforeIS)}<br>
                         • Impuesto Sociedades = ${formatCurrency(profitBeforeIS)} × ${(corporateTaxRate * 100).toFixed(1)}% = ${formatCurrency(corporateTax)}<br>
                         • Dividendos = ${formatCurrency(profitBeforeIS)} - ${formatCurrency(corporateTax)} = ${formatCurrency(dividends)}<br>
                         • IRPF = progresivo sobre ${formatCurrency(optimalSalary)} = ${formatCurrency(irpf)}<br>
+                        • RETA Autónomo Societario = ${formatCurrency(reta)}/año<br>
                         • Impuesto Dividendos = Ahorro(${formatCurrency(dividends)}) = ${formatCurrency(dividendTax)}<br>
-                        • <strong>Total Impuestos = ${formatCurrency(irpf)} + ${formatCurrency(corporateTax)} + ${formatCurrency(dividendTax)} = ${formatCurrency(totalTaxes)}</strong>
+                        • <strong>Total = ${formatCurrency(irpf)} + ${formatCurrency(reta)} + ${formatCurrency(corporateTax)} + ${formatCurrency(dividendTax)} = ${formatCurrency(totalTaxes)}</strong>
                     </div>
+
+                    ${generateSalaryComparisonTable(netBeforeTax, optimalSalary, corporateTaxRate)}
                 </div>
             `;
 
@@ -1135,6 +1261,7 @@
             );
             const salaryLabels = salaryAnalysis.map((s) => s.salary);
             const salaryIrpfData = salaryAnalysis.map((s) => s.irpf);
+            const salaryRetaData = salaryAnalysis.map((s) => s.reta);
             const salaryCitAndDivData = salaryAnalysis.map(
                 (s) => s.corporateTax + s.dividendTax
             );
@@ -1332,6 +1459,15 @@
                             tension: 0.1
                         },
                         {
+                            label: 'RETA Aut. Societario',
+                            data: salaryRetaData,
+                            borderColor: 'rgb(255, 159, 64)',
+                            backgroundColor: 'rgba(255, 159, 64, 0.1)',
+                            borderWidth: 2,
+                            fill: false,
+                            tension: 0.1
+                        },
+                        {
                             label: 'IS + Impuesto Dividendos',
                             data: salaryCitAndDivData,
                             borderColor: 'rgb(59, 130, 246)',
@@ -1341,7 +1477,7 @@
                             tension: 0.1
                         },
                         {
-                            label: 'TOTAL IMPUESTOS SL',
+                            label: 'TOTAL IMPUESTOS + RETA',
                             data: salaryTotalTaxData,
                             borderColor: 'rgb(34, 197, 94)',
                             backgroundColor: 'rgba(34, 197, 94, 0.1)',
@@ -1493,7 +1629,7 @@
                 const estimatedRevenue = parseFloat(estimatedRevenueInput.value) || 100000;
                 const operationalCosts = parseFloat(operationalCostsInput.value) ?? 950;
                 const optimalAllocationPanel = document.getElementById('optimalAllocationPanel');
-                
+
                 // Calculate optimal salary for these inputs
                 const netBeforeTax = estimatedRevenue - operationalCosts;
                 const optimalSalary = calculateOptimalSalaryForMinTaxes(estimatedRevenue, operationalCosts, 1, MINIMUM_SALARY);
@@ -1502,15 +1638,16 @@
                 const corporateTax = Math.max(0, profitBeforeIS) * corporateTaxRate;
                 const dividends = Math.max(0, profitBeforeIS - corporateTax);
                 const irpf = calculateIRPF(optimalSalary);
+                const reta = calculateRETAForAutonomoSocietario(optimalSalary);
                 const dividendTax = calculateSavingsTax(dividends);
-                const totalTaxes = irpf + corporateTax + dividendTax;
-                const netLiquid = optimalSalary + dividends - irpf - dividendTax;
+                const totalTaxes = irpf + reta + corporateTax + dividendTax;
+                const netLiquid = optimalSalary + dividends - irpf - reta - dividendTax;
                 
                 if (optimalAllocationPanel) {
                     optimalAllocationPanel.innerHTML = `
                         <div style="background: #f0f9ff; padding: 20px; border-radius: 8px; margin: 20px 0;">
                             <h3 style="text-align: center; color: #0369a1; margin-bottom: 15px;">💰 Reparto Óptimo - Minimización de Impuestos</h3>
-                            
+
                             <div style="background: #e8f5e9; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
                                 <h4 style="color: #28a745; margin-bottom: 10px;">📊 Datos de Entrada</h4>
                                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
@@ -1528,7 +1665,7 @@
                                     </div>
                                 </div>
                             </div>
-                            
+
                             <div style="background: #e6f7ff; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
                                 <h4 style="color: #0369a1; margin-bottom: 10px;">💼 Reparto Óptimo</h4>
                                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
@@ -1542,13 +1679,17 @@
                                     </div>
                                 </div>
                             </div>
-                            
+
                             <div style="background: #fff9e6; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
-                                <h4 style="color: #d97706; margin-bottom: 10px;">📋 Desglose de Impuestos</h4>
-                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                                <h4 style="color: #d97706; margin-bottom: 10px;">📋 Desglose de Impuestos y Cotizaciones</h4>
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px;">
                                     <div style="text-align: center; padding: 10px; background: white; border-radius: 6px;">
                                         <div style="font-size: 0.85em; color: #666; margin-bottom: 5px;">IRPF (sobre salario)</div>
                                         <div style="font-size: 1.2em; font-weight: bold; color: #333;">${formatCurrency(irpf)}</div>
+                                    </div>
+                                    <div style="text-align: center; padding: 10px; background: #fff0f0; border-radius: 6px;">
+                                        <div style="font-size: 0.85em; color: #666; margin-bottom: 5px;">RETA Aut. Societario</div>
+                                        <div style="font-size: 1.2em; font-weight: bold; color: #333;">${formatCurrency(reta)}</div>
                                     </div>
                                     <div style="text-align: center; padding: 10px; background: white; border-radius: 6px;">
                                         <div style="font-size: 0.85em; color: #666; margin-bottom: 5px;">Impuesto Sociedades (${(corporateTaxRate * 100).toFixed(1)}%)</div>
@@ -1564,24 +1705,27 @@
                                     </div>
                                 </div>
                             </div>
-                            
+
                             <div style="background: #4bc0c0; padding: 20px; border-radius: 6px; color: white; text-align: center;">
                                 <div style="font-size: 1.1em; opacity: 0.9; margin-bottom: 10px;">💰 NETO FINAL EN EL BOLSILLO</div>
                                 <div style="font-size: 2.2em; font-weight: bold;">${formatCurrency(netLiquid)}</div>
                                 <div style="font-size: 0.9em; opacity: 0.9; margin-top: 10px;">
-                                    ${formatCurrency(optimalSalary)} (salario) + ${formatCurrency(dividends)} (dividendos) - ${formatCurrency(irpf)} (IRPF) - ${formatCurrency(dividendTax)} (imp. dividendos) = ${formatCurrency(netLiquid)}
+                                    ${formatCurrency(optimalSalary)} (salario) + ${formatCurrency(dividends)} (dividendos) - ${formatCurrency(irpf)} (IRPF) - ${formatCurrency(reta)} (RETA) - ${formatCurrency(dividendTax)} (imp. dividendos) = ${formatCurrency(netLiquid)}
                                 </div>
                             </div>
-                            
+
                             <div style="margin-top: 15px; padding: 15px; background: white; border-radius: 6px; font-size: 0.9em; color: #666;">
                                 <strong>Cálculo del Reparto Óptimo:</strong><br>
-                                • Beneficio antes de IS = ${formatCurrency(netBeforeTax)} - ${formatCurrency(optimalSalary)} - ${formatCurrency(operationalCosts)} = ${formatCurrency(profitBeforeIS)}<br>
+                                • Beneficio antes de IS = ${formatCurrency(netBeforeTax)} - ${formatCurrency(optimalSalary)} = ${formatCurrency(profitBeforeIS)}<br>
                                 • Impuesto Sociedades = ${formatCurrency(profitBeforeIS)} × ${(corporateTaxRate * 100).toFixed(1)}% = ${formatCurrency(corporateTax)}<br>
                                 • Dividendos = ${formatCurrency(profitBeforeIS)} - ${formatCurrency(corporateTax)} = ${formatCurrency(dividends)}<br>
                                 • IRPF = progresivo sobre ${formatCurrency(optimalSalary)} = ${formatCurrency(irpf)}<br>
+                                • RETA Autónomo Societario = ${formatCurrency(reta)}/año<br>
                                 • Impuesto Dividendos = Ahorro(${formatCurrency(dividends)}) = ${formatCurrency(dividendTax)}<br>
-                                • <strong>Total Impuestos = ${formatCurrency(irpf)} + ${formatCurrency(corporateTax)} + ${formatCurrency(dividendTax)} = ${formatCurrency(totalTaxes)}</strong>
+                                • <strong>Total = ${formatCurrency(irpf)} + ${formatCurrency(reta)} + ${formatCurrency(corporateTax)} + ${formatCurrency(dividendTax)} = ${formatCurrency(totalTaxes)}</strong>
                             </div>
+
+                            ${generateSalaryComparisonTable(netBeforeTax, optimalSalary, corporateTaxRate)}
                         </div>
                     `;
                 }
